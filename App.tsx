@@ -11,10 +11,6 @@ import BirthdayHub from './components/BirthdayHub';
 import BackupCenter from './components/BackupCenter';
 
 const STORAGE_KEY = 'scholars_point_attendance_2026_v2';
-const AUTH_KEY = 'scholars_point_auth_session';
-
-const AUTHORIZED_NUMBERS = ["8454047703", "9326352170"];
-const SECURITY_CODE = "843384";
 
 const NavLink: React.FC<{ to: string; label: string; icon: string }> = ({ to, label, icon }) => {
   const location = useLocation();
@@ -34,102 +30,13 @@ const NavLink: React.FC<{ to: string; label: string; icon: string }> = ({ to, la
   );
 };
 
-// Login Component
-const Login: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
-  const [phone, setPhone] = useState('');
-  const [code, setCode] = useState('');
-  const [error, setError] = useState('');
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (AUTHORIZED_NUMBERS.includes(phone) && code === SECURITY_CODE) {
-      localStorage.setItem(AUTH_KEY, 'true');
-      onLogin();
-    } else {
-      setError('Invalid Phone Number or Security Code. Access Denied.');
-      setTimeout(() => setError(''), 3000);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full border-t-8 border-[#1a365d] animate-in fade-in zoom-in duration-300">
-        <div className="text-center mb-10">
-          <div className="w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl text-[#1a365d] shadow-inner border border-slate-100">
-            <i className="fas fa-graduation-cap"></i>
-          </div>
-          <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Scholars Point</h1>
-          <p className="text-[#b22222] font-black text-xs tracking-[0.3em] uppercase mt-1">Security Portal</p>
-        </div>
-
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
-            <div className="relative">
-              <i className="fas fa-phone-alt absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
-              <input 
-                type="tel" 
-                placeholder="Enter registered number" 
-                className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-[#1a365d] font-bold text-slate-700 transition-all"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Security Code</label>
-            <div className="relative">
-              <i className="fas fa-key absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
-              <input 
-                type="password" 
-                placeholder="Enter 6-digit code" 
-                className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-[#1a365d] font-bold text-slate-700 tracking-widest transition-all"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-xs font-bold text-center border border-red-100 animate-pulse">
-              <i className="fas fa-exclamation-triangle mr-2"></i> {error}
-            </div>
-          )}
-
-          <button 
-            type="submit" 
-            className="w-full bg-[#1a365d] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-900/20 hover:bg-slate-800 transition-all active:scale-95 flex items-center justify-center gap-3"
-          >
-            Access Dashboard <i className="fas fa-arrow-right"></i>
-          </button>
-        </form>
-
-        <p className="text-center text-[10px] text-slate-400 font-bold uppercase mt-8 tracking-tighter opacity-50">
-          Authorized Personnel Only • Scholars Point © 2026
-        </p>
-      </div>
-    </div>
-  );
-};
-
 function App() {
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [fees, setFees] = useState<FeeRecord[]>([]);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // Check auth and load data
+  // Load data on mount
   useEffect(() => {
-    const auth = localStorage.getItem(AUTH_KEY);
-    if (auth === 'true') {
-      setIsLoggedIn(true);
-    }
-    setCheckingAuth(false);
-
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const { students, attendance, fees } = JSON.parse(saved);
@@ -152,22 +59,12 @@ function App() {
     }
   }, []);
 
-  // Save data
+  // Save data whenever it changes
   useEffect(() => {
-    if (isLoggedIn) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ students, attendance, fees }));
-    }
-  }, [students, attendance, fees, isLoggedIn]);
-
-  const handleLogout = () => {
-    if (confirm("Logout of Scholars Point Portal?")) {
-      localStorage.removeItem(AUTH_KEY);
-      setIsLoggedIn(false);
-    }
-  };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ students, attendance, fees }));
+  }, [students, attendance, fees]);
 
   const handleAddStudent = (student: Student) => {
-    // Find next roll number in series
     const nextRoll = students.length > 0 ? Math.max(...students.map(s => s.rollNumber || 0)) + 1 : 1;
     setStudents(prev => [...prev, { ...student, rollNumber: nextRoll, archived: false }]);
   };
@@ -208,12 +105,6 @@ function App() {
     if (data.fees) setFees(data.fees);
   };
 
-  if (checkingAuth) return null;
-
-  if (!isLoggedIn) {
-    return <Login onLogin={() => setIsLoggedIn(true)} />;
-  }
-
   const activeStudents = students.filter(s => !s.archived);
 
   return (
@@ -250,12 +141,6 @@ function App() {
               <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Current Session</p>
               <p className="text-sm text-[#1a365d] font-bold">Academic Year 2026</p>
             </div>
-            <button 
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-red-50 text-red-600 font-bold hover:bg-red-100 transition shadow-sm border border-red-100 text-sm"
-            >
-              <i className="fas fa-sign-out-alt"></i> Logout System
-            </button>
           </div>
         </aside>
 
@@ -268,10 +153,10 @@ function App() {
             <div className="flex items-center gap-4">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-bold text-slate-900">{new Date().toDateString()}</p>
-                <p className="text-xs text-[#b22222] font-semibold tracking-widest uppercase">Secured</p>
+                <p className="text-xs text-[#b22222] font-semibold tracking-widest uppercase">Open Portal</p>
               </div>
               <div className="w-12 h-12 bg-white rounded-xl border border-slate-200 shadow-sm flex items-center justify-center p-1.5 overflow-hidden ring-2 ring-slate-50">
-                <i className="fas fa-user-shield text-[#1a365d] text-xl"></i>
+                <i className="fas fa-user-check text-[#1a365d] text-xl"></i>
               </div>
             </div>
           </header>
